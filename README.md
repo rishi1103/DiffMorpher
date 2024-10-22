@@ -92,6 +92,10 @@ python main.py \
   --use_adain --use_reschedule --save_inter
 ```
 
+## Results
+
+The results can be found in the following pdf, along with dataset and implementation details: https://drive.google.com/drive/folders/1GKEDPHJZAfAIezL2PixeREHYsVmwAJgq?usp=drive_link
+
 ## MorphBench
 To evaluate the effectiveness of our methods, we present *MorphBench*, the first benchmark dataset for assessing image morphing of general objects. You can download the dataset from [Google Drive](https://drive.google.com/file/d/1NWPzJhOgP-udP_wYbd0selRG4cu8xsu4/view?usp=sharing) or [Baidu Netdisk](https://pan.baidu.com/s/1J3xE3OJdEhKyoc1QObyYaA?pwd=putk).
 
