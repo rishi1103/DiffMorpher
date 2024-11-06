@@ -1,4 +1,5 @@
 import os
+import math  # Import math module
 from diffusers.models import AutoencoderKL, UNet2DConditionModel
 from diffusers.models.attention_processor import AttnProcessor
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
@@ -42,33 +43,26 @@ class StoreProcessor():
 
 
 class LoadProcessor():
-    def __init__(self, original_processor, name, img0_dict, img1_dict, alpha, beta=0, lamd=0.6):
+    def __init__(self, original_processor, name, img0_dict, img1_dict, alpha, lamd=0.6):
         super().__init__()
         self.original_processor = original_processor
         self.name = name
         self.img0_dict = img0_dict
         self.img1_dict = img1_dict
         self.alpha = alpha
-        self.beta = beta
         self.lamd = lamd
         self.id = 0
 
     def __call__(self, attn, hidden_states, *args, encoder_hidden_states=None, attention_mask=None, **kwargs):
         # Is self attention
         if encoder_hidden_states is None:
+            # Compute dynamic beta as a function of alpha
+            beta = math.sin(math.pi * self.alpha)
             if self.id < 50 * self.lamd:
                 map0 = self.img0_dict[self.name][self.id]
                 map1 = self.img1_dict[self.name][self.id]
-                cross_map = self.beta * hidden_states + \
-                    (1 - self.beta) * ((1 - self.alpha) * map0 + self.alpha * map1)
-                # cross_map = self.beta * hidden_states + \
-                #     (1 - self.beta) * slerp(map0, map1, self.alpha)
-                # cross_map = slerp(slerp(map0, map1, self.alpha),
-                #                   hidden_states, self.beta)
-                # cross_map = hidden_states
-                # cross_map = torch.cat(
-                #     ((1 - self.alpha) * map0, self.alpha * map1), dim=1)
-
+                cross_map = beta * hidden_states + \
+                    (1 - beta) * ((1 - self.alpha) * map0 + self.alpha * map1)
                 res = self.original_processor(attn, hidden_states, *args,
                                               encoder_hidden_states=cross_map,
                                               attention_mask=attention_mask,
@@ -80,7 +74,6 @@ class LoadProcessor():
                                               **kwargs)
 
             self.id += 1
-            # if self.id == len(self.img0_dict[self.name]):
             if self.id == len(self.img0_dict[self.name]):
                 self.id = 0
         else:
@@ -563,10 +556,10 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                         if do_replace_attn(k):
                             if self.use_lora:
                                 attn_processor_dict[k] = LoadProcessor(
-                                    self.unet.attn_processors[k], k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
+                                    self.unet.attn_processors[k], k, self.img0_dict, self.img1_dict, alpha, lamd)
                             else:
                                 attn_processor_dict[k] = LoadProcessor(
-                                    original_processor, k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
+                                    original_processor, k, self.img0_dict, self.img1_dict, alpha, lamd)
                         else:
                             attn_processor_dict[k] = self.unet.attn_processors[k]
 
